@@ -101,7 +101,14 @@ func main() {
 				return nil
 			}
 
+			logrus.Debugln("Connected to remote server")
+
 			defer remote.Close()
+
+			err := remote.Run()
+			if err != nil {
+				return err
+			}
 
 			return nil
 		},
