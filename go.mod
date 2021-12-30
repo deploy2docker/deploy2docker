@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/docker/docker v20.10.12+incompatible
+	github.com/manifoldco/promptui v0.9.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
@@ -11,6 +12,7 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.4.17 // indirect
+	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/containerd/containerd v1.5.8 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect

@@ -126,6 +126,18 @@ func main() {
 			logrus.Debugln("Closed connection to remote server")
 			return nil
 		},
+
+		Commands: []*cli.Command{
+			{
+				Name:    "init",
+				Aliases: []string{"i"},
+				Usage:   "Initialize a new configuration file",
+				Action: func(c *cli.Context) error {
+					config := internal.NewConfig()
+					return config.Init()
+				},
+			},
+		},
 	}
 
 	err := app.Run(os.Args)
