@@ -26,7 +26,9 @@ package main
 
 import (
 	"os"
+	"time"
 
+	"github.com/deploy2docker/deploy2docker/internal"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -43,11 +45,60 @@ func main() {
 				Value:   false,
 				EnvVars: []string{"DEBUG"},
 			},
+			&cli.StringFlag{
+				Name:    "address",
+				Aliases: []string{"a"},
+				Usage:   "Remote SSH address",
+				Value:   "",
+				EnvVars: []string{"ADDRESS"},
+			},
+			&cli.StringFlag{
+				Name:    "user",
+				Aliases: []string{"u"},
+				Usage:   "Remote SSH user",
+				Value:   "",
+				EnvVars: []string{"USER"},
+			},
+			&cli.StringFlag{
+				Name:    "key",
+				Aliases: []string{"k"},
+				Usage:   "Private key file",
+				Value:   "",
+				EnvVars: []string{"KEY"},
+			},
+			&cli.StringFlag{
+				Name:    "password",
+				Aliases: []string{"p"},
+				Usage:   "Password",
+				Value:   "",
+				EnvVars: []string{"PASSWORD"},
+			},
 		},
 		Action: func(c *cli.Context) error {
 
 			if c.Bool("debug") {
 				logrus.SetLevel(logrus.DebugLevel)
+			}
+
+			remote := internal.NewRemote(internal.RemoteConfig{
+				Address: c.String("address"),
+				User:    c.String("user"),
+				Timeout: time.Second * 10,
+			})
+
+			if c.String("key") != "" {
+				err := remote.ConnectWithKey(c.String("key"))
+				if err != nil {
+					return err
+				}
+			} else if c.String("password") != "" {
+				err := remote.ConnectWithPassword(c.String("password"))
+				if err != nil {
+					return err
+				}
+			} else {
+				logrus.Warnln("No key or password provided")
+				return nil
 			}
 
 			return nil
