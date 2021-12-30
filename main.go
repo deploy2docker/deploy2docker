@@ -101,21 +101,35 @@ func main() {
 				return nil
 			}
 
-			logrus.Debugln("Connected to remote server")
-
-			defer remote.Close()
-
 			err := remote.Connect()
 			if err != nil {
 				return err
 			}
 
+			docker, err := internal.NewDocker()
+			if err != nil {
+				return err
+			}
+
+			logrus.Debugln("Connected to remote server")
+
+			err = docker.Close()
+			if err != nil {
+				return err
+			}
+
+			err = remote.Close()
+			if err != nil {
+				return err
+			}
+
+			logrus.Debugln("Closed connection to remote server")
 			return nil
 		},
 	}
 
 	err := app.Run(os.Args)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
 	}
 }
