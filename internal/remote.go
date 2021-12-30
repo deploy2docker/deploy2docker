@@ -76,3 +76,10 @@ func (r *Remote) dial() (*ssh.Client, error) {
 
 	return conn, nil
 }
+
+func (r *Remote) Close() error {
+	if r.client != nil {
+		return r.client.Close()
+	}
+	return nil
+}

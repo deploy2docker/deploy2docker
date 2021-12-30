@@ -101,6 +101,8 @@ func main() {
 				return nil
 			}
 
+			defer remote.Close()
+
 			return nil
 		},
 	}
