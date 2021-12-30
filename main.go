@@ -105,7 +105,7 @@ func main() {
 
 			defer remote.Close()
 
-			err := remote.Run()
+			err := remote.Connect()
 			if err != nil {
 				return err
 			}
