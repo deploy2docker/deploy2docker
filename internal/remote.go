@@ -60,7 +60,7 @@ func (r *Remote) ConnectWithPassword(password string) error {
 func (r *Remote) ConnectWithKey(key string) error {
 	pemBytes, err := ioutil.ReadFile(key)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	signer, err := ssh.ParsePrivateKey(pemBytes)
 	if err != nil {

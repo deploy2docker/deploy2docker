@@ -25,6 +25,7 @@ SOFTWARE.
 package main
 
 import (
+	"errors"
 	"os"
 	"time"
 
@@ -37,96 +38,6 @@ func main() {
 	app := &cli.App{
 		Name:  "Deploy To Docker",
 		Usage: "Deploy to Remote Docker using SSH",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:    "debug",
-				Aliases: []string{"d"},
-				Usage:   "Enable debug mode",
-				Value:   false,
-				EnvVars: []string{"DEBUG"},
-			},
-			&cli.StringFlag{
-				Name:    "address",
-				Aliases: []string{"a"},
-				Usage:   "Remote SSH address",
-				Value:   "",
-				EnvVars: []string{"ADDRESS"},
-			},
-			&cli.StringFlag{
-				Name:    "user",
-				Aliases: []string{"u"},
-				Usage:   "Remote SSH user",
-				Value:   "",
-				EnvVars: []string{"USER"},
-			},
-			&cli.StringFlag{
-				Name:    "key",
-				Aliases: []string{"k"},
-				Usage:   "Private key file",
-				Value:   "",
-				EnvVars: []string{"KEY"},
-			},
-			&cli.StringFlag{
-				Name:    "password",
-				Aliases: []string{"p"},
-				Usage:   "Password",
-				Value:   "",
-				EnvVars: []string{"PASSWORD"},
-			},
-		},
-		Action: func(c *cli.Context) error {
-
-			if c.Bool("debug") {
-				logrus.SetLevel(logrus.DebugLevel)
-			}
-
-			remote := internal.NewRemote(internal.RemoteConfig{
-				Address: c.String("address"),
-				User:    c.String("user"),
-				Timeout: time.Second * 10,
-			})
-
-			if c.String("key") != "" {
-				err := remote.ConnectWithKey(c.String("key"))
-				if err != nil {
-					return err
-				}
-			} else if c.String("password") != "" {
-				err := remote.ConnectWithPassword(c.String("password"))
-				if err != nil {
-					return err
-				}
-			} else {
-				logrus.Warnln("No key or password provided")
-				return nil
-			}
-
-			err := remote.Connect()
-			if err != nil {
-				return err
-			}
-
-			docker, err := internal.NewDocker()
-			if err != nil {
-				return err
-			}
-
-			logrus.Debugln("Connected to remote server")
-
-			err = docker.Close()
-			if err != nil {
-				return err
-			}
-
-			err = remote.Close()
-			if err != nil {
-				return err
-			}
-
-			logrus.Debugln("Closed connection to remote server")
-			return nil
-		},
-
 		Commands: []*cli.Command{
 			{
 				Name:    "init",
@@ -135,6 +46,129 @@ func main() {
 				Action: func(c *cli.Context) error {
 					config := internal.NewConfig()
 					return config.Init()
+				},
+			},
+			{
+				Name:    "deploy",
+				Aliases: []string{"d"},
+				Usage:   "Deploy to remote docker",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "debug",
+						Aliases: []string{"d"},
+						Usage:   "Enable debug mode",
+						Value:   false,
+						EnvVars: []string{"DEBUG"},
+					},
+					&cli.PathFlag{
+						Name:    "config",
+						Aliases: []string{"c"},
+						Usage:   "Configuration file",
+						EnvVars: []string{"CONFIG"},
+						Value:   "deploy2docker.json",
+					},
+					&cli.StringFlag{
+						Name:     "address",
+						Aliases:  []string{"a"},
+						Usage:    "Remote SSH address",
+						Value:    "",
+						EnvVars:  []string{"ADDRESS"},
+						Required: false,
+					},
+					&cli.StringFlag{
+						Name:     "user",
+						Aliases:  []string{"u"},
+						Usage:    "Remote SSH user",
+						Value:    "",
+						EnvVars:  []string{"USER"},
+						Required: false,
+					},
+					&cli.PathFlag{
+						Name:     "key",
+						Aliases:  []string{"k"},
+						Usage:    "Private key file",
+						Value:    "",
+						EnvVars:  []string{"KEY"},
+						Required: false,
+					},
+					&cli.StringFlag{
+						Name:     "password",
+						Aliases:  []string{"p"},
+						Usage:    "Password",
+						Value:    "",
+						EnvVars:  []string{"PASSWORD"},
+						Required: false,
+					},
+				},
+				Action: func(c *cli.Context) error {
+
+					if c.Bool("debug") {
+						logrus.SetLevel(logrus.DebugLevel)
+					}
+
+					if c.String("config") == "" {
+						return errors.New("configuration file is required")
+					}
+
+					// check if config file exists
+					if _, err := os.Stat(c.String("config")); os.IsNotExist(err) {
+						return errors.New("configuration file does not exist")
+					}
+
+					logrus.Debugln("Reading configuration file", c.String("config"))
+
+					config := internal.NewConfig()
+					err := config.Load(c.String("config"))
+					if err != nil {
+						return err
+					}
+
+					remote := internal.NewRemote(internal.RemoteConfig{
+						Address: c.String("address"),
+						User:    c.String("user"),
+						Timeout: time.Second * 10,
+					})
+
+					if c.String("key") != "" {
+						err := remote.ConnectWithKey(c.String("key"))
+						if err != nil {
+							logrus.Debug(err)
+							return err
+						}
+					} else if c.String("password") != "" {
+						err := remote.ConnectWithPassword(c.String("password"))
+						if err != nil {
+							return err
+						}
+					} else {
+						logrus.Warnln("No key or password provided")
+					}
+
+					err = remote.Connect()
+					if err != nil {
+						return err
+					}
+
+					docker, err := internal.NewDocker()
+					if err != nil {
+						return err
+					}
+
+					logrus.Debugln("Connected to remote server")
+
+					err = docker.Close()
+					if err != nil {
+						return err
+					}
+
+					err = remote.Close()
+					if err != nil {
+						return err
+					}
+
+					logrus.Debugln("Closed connection to remote server")
+					return nil
+
 				},
 			},
 		},

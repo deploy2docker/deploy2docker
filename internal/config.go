@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/manifoldco/promptui"
+	"github.com/sirupsen/logrus"
 )
 
 type Config struct {
@@ -22,8 +24,8 @@ type Config struct {
 	// Remote
 	Remote struct {
 		Address  *string `json:"address,omitempty"`
-		User     *string `json:"user,omitempty"`
-		Key      *string `json:"key,omitempty"`
+		User     *string `json:"username,omitempty"`
+		Key      *string `json:"privateKey,omitempty"`
 		Password *string `json:"password,omitempty"`
 	}
 }
@@ -33,7 +35,23 @@ func NewConfig() *Config {
 }
 
 func (c *Config) Load(path string) error {
-	return json.Unmarshal([]byte(path), c)
+	logrus.Debugln("Loading config from", path)
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(data, c)
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
 
 func (c *Config) Save(path string) error {
