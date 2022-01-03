@@ -104,7 +104,7 @@ func (r *Remote) Connect() error {
 	}
 
 	// set docker host env var
-	os.Setenv("DOCKER_HOST", LocalDockerHost)
+	// os.Setenv("DOCKER_HOST", LocalDockerHost)
 
 	// establish connection with remote docker
 	remote, err := r.client.Dial("unix", RemoteDockerSocket)

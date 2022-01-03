@@ -23,10 +23,8 @@ type Config struct {
 
 	// Remote
 	Remote struct {
-		Address  *string `json:"address,omitempty"`
-		User     *string `json:"username,omitempty"`
-		Key      *string `json:"privateKey,omitempty"`
-		Password *string `json:"password,omitempty"`
+		Address string `json:"address,omitempty"`
+		User    string `json:"username,omitempty"`
 	}
 }
 
@@ -79,6 +77,11 @@ func (c *Config) Init() error {
 		return err
 	}
 
+	err = c.PromptRemote()
+	if err != nil {
+		return err
+	}
+
 	return c.Save("deploy2docker.json")
 }
 
@@ -122,7 +125,7 @@ func (c *Config) PromptRemoteAddress() error {
 		return err
 	}
 
-	c.Remote.Address = &result
+	c.Remote.Address = result
 	return nil
 }
 
@@ -144,51 +147,7 @@ func (c *Config) PromptRemoteUser() error {
 		return err
 	}
 
-	c.Remote.User = &result
-	return nil
-}
-
-func (c *Config) PromptRemoteKey() error {
-	validate := func(input string) error {
-		if input == "" {
-			return errors.New("remote key cannot be empty")
-		}
-		return nil
-	}
-
-	prompt := promptui.Prompt{
-		Label:    "Remote key",
-		Validate: validate,
-	}
-
-	result, err := prompt.Run()
-	if err != nil {
-		return err
-	}
-
-	c.Remote.Key = &result
-	return nil
-}
-
-func (c *Config) PromptRemotePassword() error {
-	validate := func(input string) error {
-		if input == "" {
-			return errors.New("remote password cannot be empty")
-		}
-		return nil
-	}
-
-	prompt := promptui.Prompt{
-		Label:    "Remote password",
-		Validate: validate,
-	}
-
-	result, err := prompt.Run()
-	if err != nil {
-		return err
-	}
-
-	c.Remote.Password = &result
+	c.Remote.User = result
 	return nil
 }
 
@@ -261,16 +220,6 @@ func (c *Config) PromptRemote() error {
 		return err
 	}
 
-	err = c.PromptRemoteKey()
-	if err != nil {
-		return err
-	}
-
-	err = c.PromptRemotePassword()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -288,6 +237,30 @@ func (c *Config) PromptService() error {
 	err = c.PromptServiceDockerfile()
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (c *Config) Validate() error {
+	if c.Service.Name == "" {
+		return errors.New("service name cannot be empty")
+	}
+
+	if c.Service.Dockerfile == "" {
+		return errors.New("service dockerfile cannot be empty")
+	}
+
+	if len(c.Service.Ports) == 0 {
+		return errors.New("service ports cannot be empty")
+	}
+
+	if c.Remote.Address == "" {
+		return errors.New("remote address cannot be empty")
+	}
+
+	if c.Remote.User == "" {
+		return errors.New("remote user cannot be empty")
 	}
 
 	return nil

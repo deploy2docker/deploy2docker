@@ -67,28 +67,12 @@ func main() {
 						EnvVars: []string{"CONFIG"},
 						Value:   "deploy2docker.json",
 					},
-					&cli.StringFlag{
-						Name:     "address",
-						Aliases:  []string{"a"},
-						Usage:    "Remote SSH address",
-						Value:    "",
-						EnvVars:  []string{"ADDRESS"},
-						Required: false,
-					},
-					&cli.StringFlag{
-						Name:     "user",
-						Aliases:  []string{"u"},
-						Usage:    "Remote SSH user",
-						Value:    "",
-						EnvVars:  []string{"USER"},
-						Required: false,
-					},
 					&cli.PathFlag{
-						Name:     "key",
+						Name:     "private-key",
 						Aliases:  []string{"k"},
 						Usage:    "Private key file",
 						Value:    "",
-						EnvVars:  []string{"KEY"},
+						EnvVars:  []string{"PRIVATE_KEY"},
 						Required: false,
 					},
 					&cli.StringFlag{
@@ -96,8 +80,13 @@ func main() {
 						Aliases:  []string{"p"},
 						Usage:    "Password",
 						Value:    "",
-						EnvVars:  []string{"PASSWORD"},
+						EnvVars:  []string{"SSH_PASSWORD"},
 						Required: false,
+					},
+					&cli.PathFlag{
+						Name:  "path",
+						Usage: "Path to the directory containing the dockerfile.",
+						Value: "",
 					},
 				},
 				Action: func(c *cli.Context) error {
@@ -123,14 +112,19 @@ func main() {
 						return err
 					}
 
+					err = config.Validate()
+					if err != nil {
+						return err
+					}
+
 					remote := internal.NewRemote(internal.RemoteConfig{
-						Address: c.String("address"),
-						User:    c.String("user"),
+						Address: config.Remote.Address,
+						User:    config.Remote.User,
 						Timeout: time.Second * 10,
 					})
 
-					if c.String("key") != "" {
-						err := remote.ConnectWithKey(c.String("key"))
+					if c.String("private-key") != "" {
+						err := remote.ConnectWithKey(c.String("private-key"))
 						if err != nil {
 							logrus.Debug(err)
 							return err
@@ -160,6 +154,33 @@ func main() {
 					if err != nil {
 						return err
 					}
+
+					// current working directory
+					cwd, err := os.Getwd()
+					if err != nil {
+						return err
+					}
+
+					if c.String("path") != "" {
+						cwd = c.String("path")
+					}
+
+					logrus.Infoln("Building image")
+					err = docker.Build(c.Context, cwd, []string{
+						config.Service.Name,
+					})
+					if err != nil {
+						return err
+					}
+
+					logrus.Infoln("Built successfully image ", config.Service.Name)
+
+					err = docker.Run(c.Context, config)
+					if err != nil {
+						return err
+					}
+
+					logrus.Infoln("Service ", config.Service.Name, " is running")
 
 					err = remote.Close()
 					if err != nil {
