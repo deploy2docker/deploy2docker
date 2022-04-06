@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package ssh
+package remote
 
 import (
 	"io"
@@ -119,7 +119,7 @@ func (r *Remote) Close() error {
 	return nil
 }
 
-func (r *Remote) Connect() error {
+func (r *Remote) PorxyDockerSocket() error {
 
 	// remove the docker socket if it exists
 	err := r.Cleanup()
