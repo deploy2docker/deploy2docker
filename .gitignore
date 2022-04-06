@@ -16,3 +16,6 @@
 
 deploy2docker.json
 dist/
+
+.idea
+.DS_Store
