@@ -28,10 +28,11 @@ import (
 	"context"
 	"os"
 
+	"github.com/deploy2docker/deploy2docker/internal/config"
 	"github.com/deploy2docker/deploy2docker/internal/docker"
 	"github.com/deploy2docker/deploy2docker/internal/remote"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -47,37 +48,50 @@ func main() {
 	app.Usage = "Deploy to Docker"
 	app.Version = "0.0.1"
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "config",
-			EnvVar:      "DEPLOY2DOCKER_CONFIG",
-			Usage:       "Path to the config file. If not specified, the default config file will be used.",
-			FilePath:    "deploy2docker.yaml",
-			TakesFile:   true,
+			Aliases:     []string{"c"},
+			Usage:       "Path to config file",
 			Destination: &configPath,
+			TakesFile:   true,
+			Value:       "deploy2docker.yaml",
+			EnvVars:     []string{"DEPLOY2DOCKER_CONFIG"},
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "remote",
 			Usage:       "Remote address.",
 			Required:    true,
-			EnvVar:      "DEPLOY2DOCKER_REMOTE",
+			EnvVars:     []string{"DEPLOY2DOCKER_REMOTE"},
 			Destination: &remoteAddress,
 		},
-		cli.StringFlag{
-			Name:        "password",
-			Usage:       "Password for the remote host.",
-			EnvVar:      "DEPLOY2DOCKER_PASSWORD",
+		&cli.StringFlag{
+			Name:  "password",
+			Usage: "Password for the remote host.",
+			EnvVars: []string{
+				"DEPLOY2DOCKER_PASSWORD",
+			},
 			Destination: &password,
 		},
-		cli.StringFlag{
-			Name:        "key",
-			Usage:       "Path to the private key for the remote host.",
-			EnvVar:      "DEPLOY2DOCKER_KEY",
+		&cli.StringFlag{
+			Name:  "key",
+			Usage: "Path to the private key for the remote host.",
+			EnvVars: []string{
+				"DEPLOY2DOCKER_KEY",
+			},
 			Destination: &keyPath,
 			TakesFile:   true,
 		},
 	}
 
 	app.Action = func(c *cli.Context) error {
+		config, err := config.Parse(configPath)
+		if err != nil {
+			return err
+		}
+
+		if err := config.Validate(); err != nil {
+			return err
+		}
 
 		r, err := remote.ParseRemoteConfig(remoteAddress)
 		if err != nil {
