@@ -26,42 +26,109 @@ package main
 
 import (
 	"context"
-	"time"
+	"os"
 
 	"github.com/deploy2docker/deploy2docker/internal/docker"
 	"github.com/deploy2docker/deploy2docker/internal/remote"
 	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 )
 
 func main() {
-	// ssh to remote docker host
-	remote := remote.NewRemote(remote.RemoteConfig{
-		Address: "localhost:22",
-		User:    "satish",
-		Timeout: time.Second * 10,
-	})
+	var (
+		remoteAddress string
+		configPath    string
+		password      string
+		keyPath       string
+	)
 
-	err := remote.ConnectWithPassword("password")
-	if err != nil {
-		logrus.Fatal(err)
+	app := &cli.App{}
+	app.Name = "deploy2docker"
+	app.Usage = "Deploy to Docker"
+	app.Version = "0.0.1"
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:        "config",
+			EnvVar:      "DEPLOY2DOCKER_CONFIG",
+			Usage:       "Path to the config file. If not specified, the default config file will be used.",
+			FilePath:    "deploy2docker.yaml",
+			TakesFile:   true,
+			Destination: &configPath,
+		},
+		cli.StringFlag{
+			Name:        "remote",
+			Usage:       "Remote address.",
+			Required:    true,
+			EnvVar:      "DEPLOY2DOCKER_REMOTE",
+			Destination: &remoteAddress,
+		},
+		cli.StringFlag{
+			Name:        "password",
+			Usage:       "Password for the remote host.",
+			EnvVar:      "DEPLOY2DOCKER_PASSWORD",
+			Destination: &password,
+		},
+		cli.StringFlag{
+			Name:        "key",
+			Usage:       "Path to the private key for the remote host.",
+			EnvVar:      "DEPLOY2DOCKER_KEY",
+			Destination: &keyPath,
+			TakesFile:   true,
+		},
 	}
 
-	err = remote.PorxyDockerSocket()
-	if err != nil {
-		logrus.Fatal(err)
+	app.Action = func(c *cli.Context) error {
+
+		r, err := remote.ParseRemoteConfig(remoteAddress)
+		if err != nil {
+			return err
+		}
+
+		// ssh to remote docker host
+		remote := remote.NewRemote(*r)
+
+		if password != "" {
+			err = remote.ConnectWithPassword(password)
+			if err != nil {
+				return err
+			}
+		} else if keyPath != "" {
+			err = remote.ConnectWithKey(keyPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = remote.Connect()
+			if err != nil {
+				return err
+			}
+		}
+
+		err = remote.PorxyDockerSocket()
+		if err != nil {
+			return err
+		}
+
+		docker, err := docker.NewDockerClient()
+		if err != nil {
+			return err
+		}
+
+		if docker.Ping(context.Background()) {
+			println("Docker is running")
+		} else {
+			println("Docker is not running")
+		}
+
+		defer remote.Close()
+		defer docker.Close()
+
+		return nil
 	}
 
-	docker, err := docker.NewDockerClient()
-	if err != nil {
-		panic(err)
+	// Run the app.
+	if err := app.Run(os.Args); err != nil {
+		// Log the error and exit.
+		logrus.Errorln(err)
 	}
-
-	if docker.Ping(context.Background()) {
-		println("Docker is running")
-	} else {
-		println("Docker is not running")
-	}
-
-	defer remote.Close()
-	defer docker.Close()
 }

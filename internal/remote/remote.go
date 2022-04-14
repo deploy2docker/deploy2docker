@@ -25,6 +25,7 @@ SOFTWARE.
 package remote
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -54,6 +55,39 @@ type RemoteConfig struct {
 	Address string
 	User    string
 	Timeout time.Duration
+}
+
+func ParseRemoteConfig(address string) (*RemoteConfig, error) {
+	cfg := &RemoteConfig{
+		Timeout: time.Second * 10,
+	}
+
+	// loop through the address and split it into user and host
+	for i := len(address) - 1; i >= 0; i-- {
+		if address[i] == '@' {
+			cfg.User = address[:i]
+			cfg.Address = address[i+1:]
+			break
+		}
+	}
+
+	if cfg.Address == "" {
+		return nil, fmt.Errorf("invalid address: %s", address)
+	}
+
+	hasPort := false
+	for i := len(cfg.Address) - 1; i >= 0; i-- {
+		if cfg.Address[i] == ':' {
+			hasPort = true
+			break
+		}
+	}
+
+	if !hasPort {
+		cfg.Address = fmt.Sprint(cfg.Address, ":22")
+	}
+
+	return cfg, nil
 }
 
 func NewRemote(config RemoteConfig) *Remote {
@@ -92,6 +126,20 @@ func (r *Remote) ConnectWithKey(key string) error {
 	}
 	r.config.Auth = []ssh.AuthMethod{
 		ssh.PublicKeys(signer),
+	}
+
+	conn, err := r.dial()
+	if err != nil {
+		return err
+	}
+
+	r.client = conn
+	return nil
+}
+
+func (r *Remote) Connect() error {
+	if r.client != nil {
+		return nil
 	}
 
 	conn, err := r.dial()
