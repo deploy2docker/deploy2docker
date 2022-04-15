@@ -164,6 +164,9 @@ func (r *Remote) Close() error {
 	if r.client != nil {
 		return r.client.Close()
 	}
+	if err := os.Remove(LocalDockerHost); err != nil {
+		return err
+	}
 	return nil
 }
 

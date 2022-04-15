@@ -127,6 +127,7 @@ func main() {
 		if err != nil {
 			return err
 		}
+		defer docker.Close()
 
 		if docker.Ping(context.Background()) {
 			println("Docker is running")
@@ -134,10 +135,7 @@ func main() {
 			println("Docker is not running")
 		}
 
-		defer remote.Close()
-		defer docker.Close()
-
-		return nil
+		return remote.Close()
 	}
 
 	// Run the app.
