@@ -26,6 +26,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/deploy2docker/deploy2docker/internal/config"
@@ -89,9 +90,10 @@ func main() {
 			return err
 		}
 
-		if err := config.Validate(); err != nil {
-			return err
-		}
+		// if err := config.Validate(); err != nil {
+		// 	return err
+		// }
+		fmt.Println(config)
 
 		r, err := remote.ParseRemoteConfig(remoteAddress)
 		if err != nil {

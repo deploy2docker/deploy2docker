@@ -7,7 +7,17 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Config struct{}
+type Service struct {
+	Name    string   `yaml:"name"`
+	Image   string   `yaml:"image"`
+	Env     []string `yaml:"env"`
+	Ports   []string `yaml:"ports"`
+	Volumes []string `yaml:"volumes"`
+}
+
+type Config struct {
+	Services []Service `yaml:"services"`
+}
 
 func Parse(path string) (*Config, error) {
 	yfile, err := ioutil.ReadFile(path)
@@ -17,7 +27,7 @@ func Parse(path string) (*Config, error) {
 
 	config := Config{}
 
-	err = yaml.Unmarshal(yfile, config)
+	err = yaml.Unmarshal(yfile, &config)
 	if err != nil {
 		return nil, fmt.Errorf("invalid config file: %s", err)
 	}
