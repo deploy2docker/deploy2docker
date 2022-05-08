@@ -25,8 +25,6 @@ SOFTWARE.
 package main
 
 import (
-	"context"
-	"fmt"
 	"os"
 
 	"github.com/deploy2docker/deploy2docker/internal/config"
@@ -85,15 +83,17 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
+
+		// logrus.SetReportCaller(true)
+
 		config, err := config.Parse(configPath)
 		if err != nil {
 			return err
 		}
 
-		// if err := config.Validate(); err != nil {
-		// 	return err
-		// }
-		fmt.Println(config)
+		if err := config.Validate(); err != nil {
+			return err
+		}
 
 		r, err := remote.ParseRemoteConfig(remoteAddress)
 		if err != nil {
@@ -131,10 +131,12 @@ func main() {
 		}
 		defer docker.Close()
 
-		if docker.Ping(context.Background()) {
-			println("Docker is running")
+		if docker.Ping(c.Context) {
+			if err := docker.Deploy(c.Context, config); err != nil {
+				return err
+			}
 		} else {
-			println("Docker is not running")
+			logrus.Errorln("Docker daemon is not running")
 		}
 
 		return remote.Close()

@@ -184,14 +184,14 @@ func (r *Remote) PorxyDockerSocket() error {
 	// establish connection with remote docker
 	remote, err := r.client.Dial("unix", RemoteDockerSocket)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to connect to remote docker: %s", err)
 	}
 	// defer remote.Close()
 
 	// start the local docker socket
 	local, err := net.Listen("unix", LocalDockerSocket)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to start local docker socket: %s", err)
 	}
 	// defer local.Close()
 

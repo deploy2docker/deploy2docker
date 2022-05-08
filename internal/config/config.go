@@ -8,11 +8,12 @@ import (
 )
 
 type Service struct {
-	Name    string   `yaml:"name"`
-	Image   string   `yaml:"image"`
-	Env     []string `yaml:"env"`
-	Ports   []string `yaml:"ports"`
-	Volumes []string `yaml:"volumes"`
+	Name     string   `yaml:"name"`
+	Image    string   `yaml:"image"`
+	Env      []string `yaml:"env"`
+	Ports    []string `yaml:"ports"`
+	Volumes  []string `yaml:"volumes"`
+	Networks []string `yaml:"networks"`
 }
 
 type Config struct {

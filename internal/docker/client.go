@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 
+	"github.com/deploy2docker/deploy2docker/internal/config"
 	"github.com/deploy2docker/deploy2docker/internal/remote"
 	"github.com/docker/docker/client"
 	"github.com/sirupsen/logrus"
@@ -43,4 +44,52 @@ func (d *Docker) Ping(ctx context.Context) bool {
 	}
 
 	return true
+}
+
+func (d *Docker) Deploy(ctx context.Context, config *config.Config) error {
+
+	// deploy the docker image
+
+	for _, service := range config.Services {
+
+		// create the docker network
+		for _, network := range service.Networks {
+			if _, err := d.GetNetworkByName(network); err != nil {
+				if _, err := d.CreateBridgeNetwork(ctx, network); err != nil {
+					return err
+				}
+			}
+		}
+
+		// stop the container if it exists
+		if container, err := d.GetContainerByName(ctx, service.Name); err == nil {
+			if err := d.StopContainer(ctx, container.ID); err != nil {
+				return err
+			}
+
+			if err := d.RemoveContainer(ctx, container.ID); err != nil {
+				return err
+			}
+		}
+
+		// create the container
+		container, err := d.CreateContainer(ctx, service)
+		if err != nil {
+			return err
+		}
+
+		// start the container
+		if err := d.StartContainer(ctx, container.ID); err != nil {
+			return err
+		}
+
+		// wait for the container to start
+		if err := d.ContainerLogs(ctx, container.ID); err != nil {
+			return err
+		}
+
+		logrus.Infof("Deployed %s", service.Name)
+	}
+
+	return nil
 }
